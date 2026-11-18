@@ -10,8 +10,10 @@ def test_pair_exceeds_zone():
     with pytest.raises(DomainError):model([{'kind':'zone','left':'A','count':10},{'kind':'zone','left':'B','count':20},{'kind':'pair','left':'A','right':'B','count':11}])
 def test_self_pair_rejected():
     with pytest.raises(DomainError):model([{'kind':'zone','left':'A','count':10},{'kind':'pair','left':'A','right':'A','count':5}])
-def test_missing_third_pairs_rejected():
-    with pytest.raises(DomainError):model([{'kind':'zone','left':x,'count':10} for x in 'ABC'])
+def test_missing_third_pairs_kept_as_partial():
+    # 裁决：缺交集不整桶隔离，模型保留缺口交由m5保下界扩上界
+    m=model([{'kind':'zone','left':x,'count':10} for x in 'ABC']+[{'kind':'pair','left':'A','right':'B','count':2}])
+    assert m['complete'] is False and set(m['missing_pairs'])=={'A|C','B|C'}
 def test_two_zones_missing_pair_supported():
     m=model([{'kind':'zone','left':'A','count':10},{'kind':'zone','left':'B','count':20}]);assert m['pairs']=={}
 

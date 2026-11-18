@@ -34,6 +34,7 @@ def create_app():
     def download(run_id):
         state=store.get(run_id)
         if not state.get('reconcile',{}).get('balanced'):raise DomainError('UNBALANCED','对账未平')
+        if not state.get('reconcile',{}).get('finalized'):raise DomainError('PARTIAL_RUN','存在未回填交集的缺口小时桶，旧区间未重新定界，不能进入正式日汇',409)
         return Response(bundle(state),mimetype='text/csv; charset=utf-8',headers={'Content-Disposition':'attachment; filename=evidence.csv'})
     with app.app_context():
         if not store.history():

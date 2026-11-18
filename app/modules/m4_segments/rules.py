@@ -7,13 +7,17 @@ def model(observations):
     if not 1<=len(zones)<=3 or not set(zones)<={'A','B','C'}:raise DomainError('CONSTRAINT','区域必须为A、B、C的子集')
     for (a,b),value in pairs.items():
         if a==b or a not in zones or b not in zones or value>min(zones[a],zones[b]):raise DomainError('CONSTRAINT','交集人数超出区域观测')
-    if len(zones)==3 and len(pairs)!=3:raise DomainError('CONSTRAINT','三方估界需要三组两两交集')
+    if len(pairs)>len(zones)*(len(zones)-1)//2:raise DomainError('CONSTRAINT','两两交集记录超出区域组合')
     triple_rows=[r for r in observations if r['kind']=='triple']
     if triple_rows and (len(zones)!=3 or any(r['left']!='ABC' or r.get('right','')!='' for r in triple_rows)):
         raise DomainError('CONSTRAINT','三方交集必须对应ABC三个区域')
     triples=[r['count'] for r in triple_rows]
     if len(triples)>1:raise DomainError('CONSTRAINT','三方交集记录重复')
-    return {'zones':zones,'pairs':{'|'.join(k):v for k,v in pairs.items()},'triple':triples[0] if triples else None}
+    # 裁决：缺交集不等于零，也不整桶隔离。模型保留缺口元数据，交由m5做保下界、扩上界的区间定界。
+    required={tuple(sorted(k)) for k in [('A','B'),('A','C'),('B','C')]} if len(zones)==3 else set()
+    missing=sorted('|'.join(k) for k in required-set(pairs))
+    return {'zones':zones,'pairs':{'|'.join(k):v for k,v in pairs.items()},'triple':triples[0] if triples else None,
+        'missing_pairs':missing,'complete':not missing}
 
 def apply(state):
     grouped=defaultdict(list)
